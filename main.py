@@ -1,51 +1,31 @@
+from image_generator import GeradorImagemAI
+from news_generator import GeradorDeNoticiasAI
 import os
 from dotenv import load_dotenv
-from crewai import Agent, Task, Crew, Process
-from crewai_tools import SerperDevTool
-from agents import criar_pesquisador, criar_escritor
-from tasks import criar_tarefa_pesquisa, criar_tarefa_escrita
 
-class GeradorDeNoticiasAI:
-    def __init__(self):
-        # Carrega as variáveis de ambiente
-        load_dotenv()
 
-        # Configura as chaves de API
-        os.environ["SERPER_API_KEY"] = os.getenv("SERPER_API_KEY")
-        os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
-        os.environ["OPENAI_MODEL_NAME"] = "gpt-4o-mini"
+# Carrega as variáveis de ambiente do arquivo .env
+load_dotenv()
 
-        # Cria a ferramenta de pesquisa
-        self.search_tool = SerperDevTool()
+# Obtém a chave de API do OpenAI das variáveis de ambiente
+api_key_openai = os.getenv("OPENAI_API_KEY")
 
-        # Cria os agentes
-        self.pesquisador = criar_pesquisador(self.search_tool)
-        self.escritor = criar_escritor()
 
-    def gerar_post_linkedin(self):
-        # Cria as tarefas
-        tarefa_pesquisa = criar_tarefa_pesquisa(self.pesquisador)
-        tarefa_escrita = criar_tarefa_escrita(self.escritor)
+# Gera uma notícia
+gerador = GeradorDeNoticiasAI()
+post_linkedin = gerador.gerar_post_linkedin()
 
-        # Cria a equipe (crew)
-        crew = Crew(
-            agents=[self.pesquisador, self.escritor],
-            tasks=[tarefa_pesquisa, tarefa_escrita],
-            process=Process.sequential,
-            verbose=True
-        )
+# Adiciona um alerta ao texto, informando que é uma notícia gerada por IA
+post_linkedin_final = f"🚨 Conteúdo gerado 100% por inteligência artificial 🚨\n\n{post_linkedin}"
 
-        # Inicia o processo
-        resultado = crew.kickoff()
+print("Post do LinkedIn gerado:")
+print(post_linkedin)
 
-        return resultado
+# Cria uma instância da classe GeradorImagemAI
+gerador = GeradorImagemAI(api_key_openai)
 
-def main():
-    gerador = GeradorDeNoticiasAI()
-    post_linkedin = gerador.gerar_post_linkedin()
+# Gera uma imagem para o post do LinkedIn
+descricao, url_imagem = gerador.gerar_imagem_ai(post_linkedin)
 
-    print("Post do LinkedIn gerado:")
-    print(post_linkedin)
-
-if __name__ == "__main__":
-    main()
+print("Descrição gerada:", descricao)
+print("URL da imagem gerada:", url_imagem)
