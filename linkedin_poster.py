@@ -1,11 +1,9 @@
 import requests
-import json
 from urllib.parse import urlencode
 import webbrowser
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
 import os
-import ssl
 
 class LinkedInPoster:
     def __init__(self):
@@ -39,25 +37,25 @@ class LinkedInPoster:
             "response_type": "code",
             "client_id": self.client_id,
             "redirect_uri": self.redirect_uri,
-            "scope": "openid w_member_social"  
+            "scope": "openid,profile,w_member_social,email"  
         }
         auth_url = f"https://www.linkedin.com/oauth/v2/authorization?{urlencode(auth_params)}"
 
-        print("Por favor, faça login no LinkedIn e autorize o aplicativo.")
+        print(f"URL de autorização: {auth_url}")
+        
         webbrowser.open(auth_url)
 
         # Use HTTP por padrão
         server = HTTPServer(('localhost', 8000), AuthCodeHandler)
         
-        # Descomente e configure estas linhas quando estiver pronto para usar HTTPS
-        # import ssl
-        # context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        # context.load_cert_chain('caminho/para/seu/certificado.pem', 'caminho/para/sua/chave.pem')
-        # server.socket = context.wrap_socket(server.socket, server_side=True)
-        
         server_thread = threading.Thread(target=server.handle_request)
         server_thread.start()
         server_thread.join()
+
+        if AuthCodeHandler.auth_code:
+            print("Código de autorização obtido com sucesso.")
+        else:
+            print("Falha ao obter o código de autorização.")
 
         return AuthCodeHandler.auth_code
 
@@ -101,20 +99,20 @@ class LinkedInPoster:
 
     def _obter_id_pessoa(self):
         try:
-            profile_url = f"{self.base_url}/me"
+            profile_url = f"{self.base_url}/userinfo"
             response = requests.get(profile_url, headers=self.headers)
             response.raise_for_status()
             profile_data = response.json()
-            return profile_data.get('id')
+            return profile_data.get('sub')
         except Exception as e:
             print(f"Erro ao obter ID da pessoa: {str(e)}")
             if hasattr(e, 'response'):
                 print(f"Resposta da API: {e.response.text}")
             return None
 
-    def postar_texto_com_imagem(self, texto, caminho_imagem):
+    def postar_texto_com_imagem(self, texto, diretorio_imagem):
         try:
-            asset = self._fazer_upload_imagem(caminho_imagem)
+            asset = self._fazer_upload_imagem(diretorio_imagem)
             
             if not asset:
                 print("Falha ao fazer upload da imagem.")
@@ -167,7 +165,7 @@ class LinkedInPoster:
                 print(f"Resposta da API: {e.response.text}")
             return None
 
-    def _fazer_upload_imagem(self, caminho_imagem):
+    def _fazer_upload_imagem(self, diretorio_imagem):
         try:
             init_url = f"{self.base_url}/assets?action=registerUpload"
             init_payload = {
@@ -187,7 +185,7 @@ class LinkedInPoster:
             init_data = init_response.json()
 
             upload_url = init_data['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl']
-            with open(caminho_imagem, 'rb') as image:
+            with open(diretorio_imagem, 'rb') as image:
                 files = {'file': image}
                 upload_response = requests.post(upload_url, files=files)
                 upload_response.raise_for_status()
@@ -212,25 +210,19 @@ class AuthCodeHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
         self.wfile.write(b"Autorizacao concluida. Voce pode fechar esta janela.")
+        print(f"Código de autorização recebido: {AuthCodeHandler.auth_code}")
 
     def log_message(self, format, *args):
         return  # Silencia os logs do servidor
 
-# Exemplo de uso
-if __name__ == "__main__":
-    poster = LinkedInPoster()
-    if poster.autenticar():
-        id_pessoa = poster._obter_id_pessoa()
-        if id_pessoa:
-            print("ID da pessoa obtido com sucesso:", id_pessoa)
-            texto_post = "Este é um exemplo de post publicado usando a API do LinkedIn"
-            caminho_imagem = "caminho/para/sua/imagem.jpg"  # Substitua pelo caminho real da sua imagem
-            resultado = poster.postar_texto_com_imagem(texto_post, caminho_imagem)
-            if resultado:
-                print(f"Post realizado com sucesso. ID do post: {resultado}")
-            else:
-                print("Falha ao realizar o post.")
-        else:
-            print("Falha ao obter o ID da pessoa. Verifique as credenciais e tente novamente.")
-    else:
-        print("Falha na autenticação. Verifique as credenciais e tente novamente.")
+
+## testes locais
+'''
+poster = LinkedInPoster()
+
+if poster.autenticar():
+    resultado = poster.postar_texto_com_imagem("teste testes", "C:\\GIT\\linkedin-ai-post\\imagem.png")
+    print(f"Resultado do post: {resultado}")
+else:
+    print("Erro ao autenticar no LinkedIn")
+'''

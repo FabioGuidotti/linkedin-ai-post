@@ -6,15 +6,22 @@ class GeradorImagemAI:
         self.client = OpenAI(api_key=api_key)
 
     def gerar_descricao(self, texto):
-        prompt = f"Crie uma descrição detalhada de uma imagem com poucos elementos visuais, a descrição será usado no modelo DALL-E 3 para gerar a imagem, por isso deve ter no maximo 500 caracteres. Use o seguinte texto para criar a descrição: '{texto}'"
+        prompt = f"""Crie uma imagem para uma postagem no LinkedIn com base no seguinte texto de publicação:
+
+"{texto}"
+
+A imagem deve refletir o tema principal do texto. Usar poucos elementos visuais, ter um estilo adequado para redes sociais voltadas ao mundo da tecnologia."""
         response = self.client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[
-                {"role": "system", "content": "Você é um assistente criativo especializado criar artes para o LinkedIn."},
+                {"role": "system", "content": "Você é uma IA especializada em gerar  descrições deimagens cativantes e profissionais para acompanhar publicações em redes sociais. Seu trabalho interpretar profundamente o texto fornecido e criar imagens que complementem o texto fornecido, atraindo a atenção de profissionais e se adequando ao estilo corporativo do LinkedIn. Suas criações devem ser alinhadas com a mensagem da publicação. A imagem não podem conter textos."},
                 {"role": "user", "content": prompt}
             ]
         )
         descricao = response.choices[0].message.content.strip()
+
+        print(f"Descrição gerada: {descricao}")
+
         return descricao[:1000]  # Garante que a descrição não ultrapasse 1000 caracteres
 
     def gerar_imagem(self, descricao):
