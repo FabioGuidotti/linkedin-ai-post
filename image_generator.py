@@ -26,11 +26,9 @@ A imagem deve refletir o tema principal do texto. Usar poucos elementos visuais,
 
     def gerar_imagem(self, descricao):
         response = self.client.images.generate(
-            model="dall-e-3",
+            model="gpt-image-1",
             prompt=descricao,
-            size="1024x1024",
-            quality="standard",
-            n=1,
+            size="1024x1024"
         )
         image_url = response.data[0].url
         
