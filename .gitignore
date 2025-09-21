@@ -3,3 +3,7 @@ venv/*
 *.pyc
 image.png
 imagem.png
+
+# Histórico de posts gerados
+historico_posts/
+imagem_gerada.png
