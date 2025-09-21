@@ -1,55 +1,43 @@
-from image_generator import GeradorImagemAI
-from news_generator import GeradorDeNoticiasAI
-from linkedin_poster import LinkedInPoster
+#!/usr/bin/env python3
+"""
+Script principal - versão simplificada usando módulos separados
+Para funcionalidades completas, use workflow.py
+"""
+
+from content_generator import ContentGenerator
+from linkedin_publisher import LinkedInPublisher
 import os
 from dotenv import load_dotenv
-import requests
 
+def main():
+    # Carrega as variáveis de ambiente
+    load_dotenv()
+    api_key_openai = os.getenv("OPENAI_API_KEY")
+    
+    if not api_key_openai:
+        print("❌ OPENAI_API_KEY não encontrada no .env")
+        return
+    
+    print("🚀 Iniciando geração e publicação de post...")
+    print("💡 Para mais opções, use: python workflow.py --help")
+    
+    # Gera conteúdo
+    generator = ContentGenerator(api_key_openai)
+    content = generator.generate_content(save_to_history=True)
+    
+    if not content:
+        print("❌ Falha na geração de conteúdo")
+        return
+    
+    # Publica no LinkedIn
+    publisher = LinkedInPublisher()
+    result = publisher.publish_content(content, update_history=True)
+    
+    if result["success"]:
+        print("🎉 Post gerado e publicado com sucesso!")
+    else:
+        print(f"❌ Falha na publicação: {result.get('error', 'Erro desconhecido')}")
+        print("💡 Conteúdo foi salvo no histórico mesmo com falha na publicação")
 
-# Carrega as variáveis de ambiente do arquivo .env
-load_dotenv()
-
-# Obtém a chave de API do OpenAI das variáveis de ambiente
-api_key_openai = os.getenv("OPENAI_API_KEY")
-
-
-# Gera uma notícia
-gerador = GeradorDeNoticiasAI()
-post_linkedin = gerador.gerar_post_linkedin()
-
-# Adiciona um alerta ao texto, informando que é uma notícia gerada por IA
-post_linkedin_final = f"[NOTÍCIAS DO MUNDO DA AI GERADO POR AI]\n\n{post_linkedin}\n\n**Conteúdo gerado 100% por inteligência artificial, as notícias podem conter erros."
-
-print("Post do LinkedIn gerado:")
-print(post_linkedin_final)
-
-# Cria uma instância da classe GeradorImagemAI
-gerador = GeradorImagemAI(api_key_openai)
-
-# Gera uma imagem para o post do LinkedIn
-descricao, url_imagem = gerador.gerar_imagem_ai(post_linkedin)
-
-print("Descrição gerada:", descricao)
-print("URL da imagem gerada:", url_imagem)
-
-# baixa a imagem da url e salva localmente
-resposta = requests.get(url_imagem)
-if resposta.status_code == 200:
-    with open("imagem.png", "wb") as f:
-        f.write(resposta.content)
-
-    # salva diretorio da imagem
-    diretorio_imagem = os.path.join(os.getcwd(), "imagem.png")
-    print(f"Imagem salva em: {diretorio_imagem}")
-else:
-    print(f"Erro ao baixar a imagem: {resposta.status_code}")
-
-
-# posta no linkedin
-poster = LinkedInPoster()
-
-if poster.autenticar():
-    resultado = poster.postar_texto_com_imagem(post_linkedin_final, diretorio_imagem)
-    print(f"Resultado do post: {resultado}")
-else:
-    print("Erro ao autenticar no LinkedIn")
+if __name__ == "__main__":
+    main()
